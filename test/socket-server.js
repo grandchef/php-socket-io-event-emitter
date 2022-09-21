@@ -6,6 +6,8 @@ var app = require('http').createServer(handler)
 var io = require('socket.io')(app);
 var fs = require('fs');
 
+const nspWorker = io.of('/worker')
+
 app.listen(9001);
 
 function handler (req, res) {
@@ -14,7 +16,7 @@ function handler (req, res) {
 }
 
 
-io.on('connection', function (socket) {
+nspWorker.on('connection', function (socket) {
 
     console.log("New Connection with transport", socket.conn.transport.name);
 
@@ -24,6 +26,6 @@ io.on('connection', function (socket) {
     console.log('With query', socket.handshake.query);
 
     socket.on('eventFromPhp', function (data) {
-        console.log('Data from Php', data, JSON.parse(data));
+        console.log('Data from Php', data);
     });
 });

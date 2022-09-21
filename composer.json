@@ -1,10 +1,14 @@
 {
-    "name": "touskar/php-socket-io-event-emitter",
+    "name": "nextqs/php-socket-io-event-emitter",
     "authors": [
         {
             "name": "Moussa Ndour",
             "email": "moussa_ndour@hotmail.fr"
+        },
+        {
+            "name": "Marcelo Melo",
+            "email": "marcelo.melo@nextqs.com"
         }
     ],
-    "require": {}
+    "require": {}   
 }
