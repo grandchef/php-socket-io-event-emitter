@@ -19,6 +19,8 @@ require_once '../SocketIO.php';
 
 $client = new SocketIO('localhost', 9001);
 
+$client->setNamespace('worker');
+
 //connection handshake query( for auth - optional)
 $client->setQueryParams([
     'token' => 'edihsudshuz',
@@ -51,6 +53,8 @@ else{
 var app = require('http').createServer(handler)
    var io = require('socket.io')(app);
    var fs = require('fs');
+
+   const nspWorker = io.of('/worker')
    
    app.listen(9001);
    
@@ -58,9 +62,8 @@ var app = require('http').createServer(handler)
        res.writeHead(200);
        res.end('Hello Word');
    }
-   
-   
-   io.on('connection', function (socket) {
+
+   nspWorker.on('connection', function (socket) {
    
        console.log("New Connection with transport", socket.conn.transport.name);
    
@@ -96,6 +99,11 @@ $client->setProtocole(SocketIO::TLS_PROTOCOLE);
 $client->setProtocole(SocketIO::SSL_PROTOCOLE);
 ```
 
+***.```setHost(host)```***
+```
+$client->setHost('localhost');
+```
+
 ***.```setPort(port)```***
 ```
 $client->setPort(80);
@@ -103,11 +111,11 @@ $client->setPort(80);
 
 ***.```setPath(path)```***
 ```
-$client->setPath('/socket.io/EIO=3');
+$client->setPath('/socket.io/EIO=4');
 ```
 
-***.```setHost(host)```***
+***.```setNamespace(namespace)```***
 ```
-$client->setPath('localhost');
+$client->setNamespace('worker');
 ```
 

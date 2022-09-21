@@ -15,6 +15,8 @@ require_once '../SocketIO.php';
 
 $client = new SocketIO('localhost', 9001);
 
+$client->setNamespace('worker');
+
 $client->setQueryParams([
     'token' => 'edihsudshuz',
     'id' => '8780',

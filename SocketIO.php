@@ -30,6 +30,10 @@ class SocketIO
      */
     private $protocole = SocketIO::NO_SECURE_PROTOCOLE;
 
+    /**
+     * @var string null
+     */
+    private $namespace;
 
     /**
      * @var string
@@ -74,7 +78,7 @@ class SocketIO
      * @param string|int null $port
      * @param string $path
      */
-    public function __construct($host = null, $port = null, $path = "/socket.io/EIO=3")
+    public function __construct($host = null, $port = null, $path = "/socket.io/EIO=4")
     {
         $this->host = $host;
         $this->port = $port;
@@ -247,7 +251,7 @@ class SocketIO
         $query = '';
         if(count($this->queryParams) > 0)
         {
-            $query =  "?".http_build_query($this->queryParams);
+            $query = http_build_query($this->queryParams);
 
         }
 
@@ -263,11 +267,17 @@ class SocketIO
         $this->queryParams = $queryParams;
     }
 
-
+    /**
+     * @param array $queryParams
+     */
+    public function setNamespace($namespace)
+    {
+        $this->namespace = $namespace;
+    }
 
     private function send()
     {
-        set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext) {
+        set_error_handler(function($errno, $errstr, $errfile, $errline) {
             $error = [
                 'message' => $errstr,
                 'file' => $errfile,
@@ -289,7 +299,7 @@ class SocketIO
         }
 
         $key = $this->generateKey();
-        $out = "GET {$this->path}{$this->getQueryParams()}&transport=websocket HTTP/1.1\r\n";
+        $out = "GET {$this->path}?{$this->getQueryParams()}&transport=websocket HTTP/1.1\r\n";
         $out.= "Host: {$this->host}:{$this->port}\r\n";
         $out.= "Upgrade: WebSocket\r\n";
         $out.= "Connection: Upgrade\r\n";
@@ -300,6 +310,7 @@ class SocketIO
         fwrite($fd, $out);
         // 101 switching protocols, see if echoes key
         $result= fread($fd,10000);
+        usleep(1000);
 
         preg_match('#Sec-WebSocket-Accept:\s(.*)$#mU', $result, $matches);
         $keyAccept = trim($matches[1]);
@@ -308,14 +319,22 @@ class SocketIO
 
         if ($handshaked)
         {
-            fwrite($fd, $this->hybi10Encode('42["' . $this->event . '", "' . addslashes($this->getData()) . '"]'));
-            fread($fd,1000000);
+            // connect in namespace
+            $result= fwrite($fd, $this->hybi10Encode("40/{$this->namespace}"));
+            usleep(1000);
+            // send data
+            $result= fwrite($fd, $this->hybi10Encode('42/' . $this->namespace. ',["' . $this->event . '",'. $this->getData() .']'));
+            usleep(1000);
+
             restore_error_handler();
+            fclose($fd);
+            
             return true;
         }
         else
         {
             restore_error_handler();
+            fclose($fd);
             return false;
         }
     }
