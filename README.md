@@ -1,5 +1,6 @@
 PHP Socket Client 
-===================
+=================
+v.0.1.0
 
 Fork from : ```https://github.com/psinetron/PHP_SocketIO_Client```
 
