@@ -16,7 +16,7 @@ php composer require nextqs/php-socket-io-event-emitter
    -------------
 
 ***web.php***
-```
+```php
 $config = [
     ...
     'components' => [
@@ -31,7 +31,7 @@ $config = [
 
 ```
 ***Use Component***
-```
+```php
 // Create socketio client
 $objClient = new \Yii::$app->socketioClient("localhost", 8080);
 // set query params
