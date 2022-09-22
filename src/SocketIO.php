@@ -1,18 +1,20 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: mac
- * Date: 07/06/2017
- * Time: 13:09
- */
 
-class SocketIO
+declare(strict_types = 1);
+
+namespace nextqs\socketio;
+
+use yii\base\Component;
+use yii\base\Exception;
+
+
+class SocketIO extends Component
 {
 
-    const  SSL_PROTOCOLE = 'ssl://';
-    const  TLS_PROTOCOLE = 'tls://';
-    const  NO_SECURE_PROTOCOLE = '';
+    const  SSL_PROTOCOL = 'ssl://';
+    const  TLS_PROTOCOL = 'tls://';
+    const  NO_SECURE_PROTOCOL = '';
 
     /**
      * @var string null
@@ -28,7 +30,7 @@ class SocketIO
     /**
      * @var string
      */
-    private $protocole = SocketIO::NO_SECURE_PROTOCOLE;
+    private $protocol = SocketIO::NO_SECURE_PROTOCOL;
 
     /**
      * @var string null
@@ -44,11 +46,6 @@ class SocketIO
      * @var array| string
      */
     private $data = [];
-
-    /**
-     * @var string
-     */
-    private $transport;
 
     /**
      * @var string
@@ -78,10 +75,10 @@ class SocketIO
      * @param string|int null $port
      * @param string $path
      */
-    public function __construct($host = null, $port = null, $path = "/socket.io/EIO=4")
+    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4")
     {
         $this->host = $host;
-        $this->port = $port;
+        $this->port = (int)$port;
         $this->path = $path;
     }
 
@@ -93,154 +90,26 @@ class SocketIO
         return $this->errors;
     }
 
-
-
     /**
-     * @return string
+     * @param string $protocol
      */
-    public function getPort()
+    public function setProtocol( $protocol)
     {
-        return $this->port;
-    }
-
-    /**
-     * @param string $port
-     */
-    public function setPort($port)
-    {
-        $this->port = intval($port);
-    }
-
-    /**
-     * @return int|string
-     */
-    public function getHost()
-    {
-        return $this->host;
-    }
-
-    /**
-     * @param int|string $host
-     */
-    public function setHost($host)
-    {
-        $this->host = $host;
-    }
-
-
-
-    /**
-     * @return string
-     */
-    public function getEvent()
-    {
-        return $this->event;
-    }
-
-    /**
-     * @param string $event
-     */
-    private function setEvent($event)
-    {
-        $this->event = $event;
-    }
-
-    /**
-     * @return array|string
-     */
-    public function getData()
-    {
-        if(is_string($this->data))
+        if(!in_array($protocol, [SocketIO::NO_SECURE_PROTOCOL, SocketIO::SSL_PROTOCOL, SocketIO::TLS_PROTOCOL]))
         {
-            return $this->data;
-        }
-        else{
-            return json_encode($this->data);
-        }
-    }
-
-    /**
-     * @param array|string $data
-     */
-    public function setData($data)
-    {
-        $this->data = $data;
-
-    }
-
-
-
-    /**
-     * @return string
-     */
-    public function getPath()
-    {
-        return $this->path;
-    }
-
-    /**
-     * @param string $path
-     */
-    public function setPath($path)
-    {
-        $this->path = $path;
-    }
-
-
-
-    /**
-     * @return int
-     */
-    public function getMaxRetry()
-    {
-        return $this->maxRetry;
-    }
-
-    /**
-     * @param int $maxRetry
-     */
-    public function setMaxRetry($maxRetry)
-    {
-        $this->maxRetry = $maxRetry;
-    }
-
-    /**
-     * @return int
-     */
-    public function getRetryInterval()
-    {
-        return $this->retryInterval;
-    }
-
-    /**
-     * @param int $retryInterval
-     */
-    public function setRetryInterval($retryInterval)
-    {
-        $this->retryInterval = $retryInterval;
-    }
-
-    /**
-     * @return string
-     */
-    public function getProtocole()
-    {
-        return $this->protocole;
-    }
-
-    /**
-     * @param string $protocole
-     */
-    public function setProtocole( $protocole)
-    {
-        if(!in_array($protocole, [SocketIO::NO_SECURE_PROTOCOLE, SocketIO::SSL_PROTOCOLE, SocketIO::TLS_PROTOCOLE]))
-        {
-            $protocole = SocketIO::NO_SECURE_PROTOCOLE;
+            $protocol = SocketIO::NO_SECURE_PROTOCOL;
         }
 
-        $this->protocole = $protocole;
+        $this->protocol = $protocol;
     }
 
+    /**
+     * @return array
+     */
+    public function getProtocol()
+    {
+        return $this->protocol;
+    }
 
 
     /**
@@ -251,8 +120,7 @@ class SocketIO
         $query = '';
         if(count($this->queryParams) > 0)
         {
-            $query = http_build_query($this->queryParams);
-
+            $query =  http_build_query($this->queryParams);
         }
 
 
@@ -275,6 +143,7 @@ class SocketIO
         $this->namespace = $namespace;
     }
 
+
     private function send()
     {
         set_error_handler(function($errno, $errstr, $errfile, $errline) {
@@ -283,69 +152,66 @@ class SocketIO
                 'file' => $errfile,
                 'line' => $errline
             ];
-
             if(!in_array($error, $this->errors))
             {
                 array_push($this->errors, $error);
-            }
-
+            }   
+            \Yii::error("SocketIO Client set_error_handler: " . json_encode($error), __METHOD__);
         });
 
-        $fd = fsockopen("{$this->protocole}{$this->host}", $this->port, $errno, $errstr);
-
-        if (!$fd) {
+        $objSocket = null;
+        $objSocket = fsockopen("{$this->protocol}{$this->host}", intval($this->port), $errno, $errstr, 10);
+        if (!$objSocket) {
             restore_error_handler();
+            \Yii::error("Error: SocketIO Client disconnect!", __METHOD__);
             return false;
         }
 
-        $key = $this->generateKey();
-        $out = "GET {$this->path}?{$this->getQueryParams()}&transport=websocket HTTP/1.1\r\n";
-        $out.= "Host: {$this->host}:{$this->port}\r\n";
-        $out.= "Upgrade: WebSocket\r\n";
-        $out.= "Connection: Upgrade\r\n";
-        $out.= "Sec-WebSocket-Key: $key\r\n";
-        $out.= "Sec-WebSocket-Version: 13\r\n";
-        $out.= "Origin: *\r\n\r\n";
+        $strKey = $this->generateKey();
+        $strSend = "GET {$this->path}&{$this->getQueryParams()}&transport=websocket HTTP/1.1\r\n";
+        $strSend.= "Host: {$this->host}:{$this->port}\r\n";
+        $strSend.= "Upgrade: WebSocket\r\n";
+        $strSend.= "Connection: Upgrade\r\n";
+        $strSend.= "Sec-WebSocket-Key: $strKey\r\n";
+        $strSend.= "Sec-WebSocket-Version: 13\r\n";
+        $strSend.= "Origin: *\r\n\r\n";
 
-        fwrite($fd, $out);
+        fwrite($objSocket, $strSend);
         // 101 switching protocols, see if echoes key
-        $result= fread($fd,10000);
-        usleep(1000);
-
+        $result= fread($objSocket,10000);
         preg_match('#Sec-WebSocket-Accept:\s(.*)$#mU', $result, $matches);
         $keyAccept = trim($matches[1]);
-        $expectedResonse = base64_encode(pack('H*', sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
+        $expectedResonse = base64_encode(pack('H*', sha1($strKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
         $handshaked = ($keyAccept === $expectedResonse) ? true : false;
 
         if ($handshaked)
         {
             // connect in namespace
-            $result= fwrite($fd, $this->hybi10Encode("40/{$this->namespace}"));
-            usleep(1000);
+            $result= fwrite($objSocket, $this->hybi10Encode("40/{$this->namespace}"));
+            \usleep(1000);
             // send data
-            $result= fwrite($fd, $this->hybi10Encode('42/' . $this->namespace. ',["' . $this->event . '",'. $this->getData() .']'));
-            usleep(1000);
+            $result= fwrite($objSocket, $this->hybi10Encode('42/' . $this->namespace. ',["' . $this->event . '",'. json_encode($this->data).']'));
+            \usleep(500);
 
             restore_error_handler();
-            fclose($fd);
+            fclose($objSocket);
             
             return true;
         }
-        else
-        {
-            restore_error_handler();
-            fclose($fd);
-            return false;
-        }
+        \Yii::error("SocketIO Client not handshaked!", __METHOD__);
+        
+        restore_error_handler();
+        fclose($objSocket);
+        return false;
+        
     }
 
 
     public function emit($event, $data = [])
     {
 
-
-        $this->setEvent($event);
-        $this->setData($data);
+        $this->event = $event;
+        $this->data = $data;
         $success = false;
 
         begin:
@@ -375,9 +241,9 @@ class SocketIO
 
     private function generateKey($length = 16)
     {
-        $c = 0;
+        $cnt = 0;
         $tmp = '';
-        while ($c++ * 16 < $length) { $tmp .= md5(mt_rand(), true); }
+        while ($cnt++ * 16 < $length) { $tmp .= md5((string)mt_rand(), true); }
         return base64_encode(substr($tmp, 0, $length));
     }
 
@@ -406,7 +272,6 @@ class SocketIO
                 $frameHead[$i + 2] = bindec($payloadLengthBin[$i]);
             }
             if ($frameHead[2] > 127) {
-//                $this->close(1004);
                 return false;
             }
         } elseif ($payloadLength > 125) {
