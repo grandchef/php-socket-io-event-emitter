@@ -11,7 +11,7 @@
 /**
  * client
  */
-require_once '../SocketIO.php';
+require_once '../src/SocketIO.php';
 
 $client = new SocketIO('localhost', 9001);
 

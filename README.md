@@ -1,6 +1,6 @@
 PHP Socket Client 
 =================
-v.0.1.0
+v.0.1.1
 
 Fork from : ```https://github.com/psinetron/PHP_SocketIO_Client```
 
@@ -16,7 +16,7 @@ php composer require nextqs/php-socket-io-event-emitter
 ***Php***
 ```php
 
-require_once '../SocketIO.php';
+require_once '../src/SocketIO.php';
 
 $client = new SocketIO('localhost', 9001);
 
