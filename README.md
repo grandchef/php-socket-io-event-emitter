@@ -12,6 +12,49 @@ Fork from : ```https://github.com/psinetron/PHP_SocketIO_Client```
 php composer require nextqs/php-socket-io-event-emitter
 ```
 
+**1 - YII2 Framework**
+   -------------
+
+***web.php***
+```php
+$config = [
+    ...
+    'components' => [
+        ...,
+        //socketioClient
+        'socketioClient' => [
+            'class' => 'nextqs\socketio\SocketIO',
+        ],
+        ...
+    ],
+]
+
+```
+***Use Component***
+```php
+// Create socketio client
+$objClient = new \Yii::$app->socketioClient("localhost", 8080);
+// set query params
+$objClient->setQueryParams([
+      'param1' => 'value'
+   ]);
+// set namespace
+$objClient->setNamespace('worker');
+// send data
+$success = $objClient->emit('msg', [
+    'action' => 'test_action',
+    'payload' => [
+        'data' => [
+            'key' => 'value
+        ]
+    ]
+]);
+
+return $success;
+```
+
+   **2 - TESTS**
+   -------------
 
 ***Php***
 ```php
@@ -80,7 +123,7 @@ var app = require('http').createServer(handler)
    
 ```
    
-   **2 - API**
+   **3 - API**
    -------------
 ***.```setMaxRetry(n)```***
 ```
@@ -93,11 +136,11 @@ $client->setRetryInterval(100);// 100 ms, default 200
 ```
 
 
-***.```setProtocole(protocol)```***
+***.```setProtocol(protocol)```***
 ```
-$client->setProtocole(SocketIO::NO_SECURE_PROTOCOLE);
-$client->setProtocole(SocketIO::TLS_PROTOCOLE);
-$client->setProtocole(SocketIO::SSL_PROTOCOLE);
+$client->setProtocol(SocketIO::NO_SECURE_PROTOCOLE);
+$client->setProtocol(SocketIO::TLS_PROTOCOLE);
+$client->setProtocol(SocketIO::SSL_PROTOCOLE);
 ```
 
 ***.```setHost(host)```***
@@ -112,7 +155,7 @@ $client->setPort(80);
 
 ***.```setPath(path)```***
 ```
-$client->setPath('/socket.io/EIO=4');
+$client->setPath('/socket.io/?EIO=4');
 ```
 
 ***.```setNamespace(namespace)```***
