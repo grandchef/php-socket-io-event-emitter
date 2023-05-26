@@ -14,6 +14,8 @@ class SocketIO
     const  TLS_PROTOCOL = 'tls://';
     const  NO_SECURE_PROTOCOL = '';
 
+    private $objSocket;
+
     /**
      * @var string null
      */
@@ -142,7 +144,7 @@ class SocketIO
     }
 
 
-    private function send()
+    public function connect()
     {
         set_error_handler(function($errno, $errstr, $errfile, $errline) {
             $error = [
@@ -157,9 +159,8 @@ class SocketIO
             throw new Exception("SocketIO Client set_error_handler: " . json_encode($error));
         });
 
-        $objSocket = null;
-        $objSocket = fsockopen("{$this->protocol}{$this->host}", intval($this->port), $errno, $errstr, 10);
-        if (!$objSocket) {
+        $this->objSocket = fsockopen("{$this->protocol}{$this->host}", intval($this->port), $errno, $errstr, 10);
+        if (! $this->objSocket) {
             restore_error_handler();
             throw new Exception("Error: SocketIO Client disconnect!");
         }
@@ -173,9 +174,10 @@ class SocketIO
         $strSend.= "Sec-WebSocket-Version: 13\r\n";
         $strSend.= "Origin: *\r\n\r\n";
 
-        fwrite($objSocket, $strSend);
+        fwrite($this->objSocket, $strSend);
+        fflush($this->objSocket);
         // 101 switching protocols, see if echoes key
-        $result= fread($objSocket,10000);
+        $result = fread($this->objSocket,10000);
         preg_match('#Sec-WebSocket-Accept:\s(.*)$#mU', $result, $matches);
         $keyAccept = trim($matches[1]);
         $expectedResonse = base64_encode(pack('H*', sha1($strKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
@@ -184,20 +186,39 @@ class SocketIO
         if ($handshaked)
         {
             // connect in namespace
-            $result= fwrite($objSocket, $this->hybi10Encode("40/{$this->namespace}"));
-            \usleep(1000);
-            // send data
-            $result= fwrite($objSocket, $this->hybi10Encode('42/' . $this->namespace. ',["' . $this->event . '",'. json_encode($this->data).']'));
-            \usleep(500);
+            fwrite($this->objSocket, $this->hybi10Encode("40/{$this->namespace}"));
+            fflush($this->objSocket);
+            \usleep(100000);
 
-            restore_error_handler();
-            fclose($objSocket);
-            
             return true;
         }
-        restore_error_handler();
-        fclose($objSocket);
+        fclose($this->objSocket);
         throw new Exception("SocketIO Client not handshaked!");
+    }
+
+    private function send()
+    {
+        fwrite($this->objSocket, $this->hybi10Encode('42/' . $this->namespace. ',["' . $this->event . '",'. json_encode($this->data).']'));
+        fflush($this->objSocket);
+        \usleep(200000);
+
+        return true;
+    }
+
+    private function read()
+    {
+        $result = '';
+        while(($data = fread($this->objSocket, 4096)) !== false) {
+            echo $data . "\n";
+            $result .= $data;
+        }
+        return $result;
+    }
+
+    public function close()
+    {
+        restore_error_handler();
+        fclose($this->objSocket);
     }
 
 
