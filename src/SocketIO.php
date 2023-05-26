@@ -237,10 +237,7 @@ class SocketIO
 
     private function generateKey($length = 16)
     {
-        $cnt = 0;
-        $tmp = '';
-        while ($cnt++ * 16 < $length) { $tmp .= md5((string)mt_rand(), true); }
-        return base64_encode(substr($tmp, 0, $length));
+        return base64_encode(openssl_random_pseudo_bytes($length));
     }
 
     private function hybi10Encode($payload, $type = 'text', $masked = true)
