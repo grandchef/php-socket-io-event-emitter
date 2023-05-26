@@ -1,22 +1,6 @@
 {
-    "name": "nextqs/php-socket-io-event-emitter",
-    "description": "PHP SocketIO Client - Yii2 Framework",
-    "authors": [
-        {
-            "name": "Moussa Ndour",
-            "email": "moussa_ndour@hotmail.fr"
-        },
-        {
-            "name": "nextqs",
-            "email": "nextqs@nextqs.com",
-            "homepage": "https://nextqs.com",
-            "role": "Developer"
-        }
-    ],
-    "support": {
-        "issues": "https://github.com/nextqs/php-socket-io-event-emitter/issues",
-        "source": "https://github.com/nextqs/php-socket-io-event-emitter"
-    },
+    "name": "grandchef/php-socket-io-event-emitter",
+    "description": "PHP SocketIO Client",
     "repositories": [
         {
             "type": "composer",
@@ -28,12 +12,9 @@
     "require": {
         "php": ">=7.3"
     },
-    "require-dev": {
-        "yiisoft/yii2": "^2.0"
-    },
     "autoload": {
         "psr-4": {
-            "nextqs\\socketio\\": "src/"
+            "GrandChef\\SocketIO\\": "src/"
         }
     }
 }

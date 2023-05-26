@@ -3,13 +3,11 @@
 
 declare(strict_types = 1);
 
-namespace nextqs\socketio;
+namespace GrandChef\SocketIO;
 
-use yii\base\Component;
-use yii\base\Exception;
+use Exception;
 
-
-class SocketIO extends Component
+class SocketIO
 {
 
     const  SSL_PROTOCOL = 'ssl://';
@@ -156,15 +154,14 @@ class SocketIO extends Component
             {
                 array_push($this->errors, $error);
             }   
-            \Yii::error("SocketIO Client set_error_handler: " . json_encode($error), __METHOD__);
+            throw new Exception("SocketIO Client set_error_handler: " . json_encode($error));
         });
 
         $objSocket = null;
         $objSocket = fsockopen("{$this->protocol}{$this->host}", intval($this->port), $errno, $errstr, 10);
         if (!$objSocket) {
             restore_error_handler();
-            \Yii::error("Error: SocketIO Client disconnect!", __METHOD__);
-            return false;
+            throw new Exception("Error: SocketIO Client disconnect!");
         }
 
         $strKey = $this->generateKey();
@@ -198,12 +195,9 @@ class SocketIO extends Component
             
             return true;
         }
-        \Yii::error("SocketIO Client not handshaked!", __METHOD__);
-        
         restore_error_handler();
         fclose($objSocket);
-        return false;
-        
+        throw new Exception("SocketIO Client not handshaked!");
     }
 
 
@@ -214,25 +208,27 @@ class SocketIO extends Component
         $this->data = $data;
         $success = false;
 
-        begin:
-        try {
-            if ($this->send()) {
-                $success = true;
-            } else {
-                do
+        while(true) {
+            try {
+                if ($this->send()) {
+                    $success = true;
+                } else {
+                    do
+                    {
+                        usleep($this->retryInterval * 1000);
+                        $this->maxRetry--;
+                        $success = $this->send();
+    
+                    } while($this->maxRetry > 0 && !$success);
+    
+                }
+            } catch (Exception $e) {
+                if($this->maxRetry > 0)
                 {
-                    usleep($this->retryInterval * 1000);
-                    $this->maxRetry--;
-                    $success = $this->send();
-
-                } while($this->maxRetry > 0 && !$success);
-
+                    continue;
+                }
             }
-        } catch (Exception $e) {
-            if($this->maxRetry > 0)
-            {
-                goto begin;
-            }
+            break;
         }
 
         return $success;
