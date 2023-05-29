@@ -168,6 +168,7 @@ class SocketIO
         $strKey = $this->generateKey();
         $strSend = "GET {$this->path}&{$this->getQueryParams()}&transport=websocket HTTP/1.1\r\n";
         $strSend.= "Host: {$this->host}:{$this->port}\r\n";
+        $strSend.= "x-forwarded-port: {$this->port}\r\n";
         $strSend.= "Upgrade: WebSocket\r\n";
         $strSend.= "Connection: Upgrade\r\n";
         $strSend.= "Sec-WebSocket-Key: $strKey\r\n";
