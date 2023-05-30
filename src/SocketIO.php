@@ -80,6 +80,11 @@ class SocketIO
         $this->host = $host;
         $this->port = (int)$port;
         $this->path = $path;
+
+        $protocol = $this->port == 443
+            ? self::TLS_PROTOCOL
+            : self::NO_SECURE_PROTOCOL;
+        $this->protocol = $protocol;
     }
 
     /**
@@ -89,28 +94,6 @@ class SocketIO
     {
         return $this->errors;
     }
-
-    /**
-     * @param string $protocol
-     */
-    public function setProtocol( $protocol)
-    {
-        if(!in_array($protocol, [SocketIO::NO_SECURE_PROTOCOL, SocketIO::SSL_PROTOCOL, SocketIO::TLS_PROTOCOL]))
-        {
-            $protocol = SocketIO::NO_SECURE_PROTOCOL;
-        }
-
-        $this->protocol = $protocol;
-    }
-
-    /**
-     * @return array
-     */
-    public function getProtocol()
-    {
-        return $this->protocol;
-    }
-
 
     /**
      * @return string
@@ -178,7 +161,7 @@ class SocketIO
         fwrite($this->objSocket, $strSend);
         fflush($this->objSocket);
         // 101 switching protocols, see if echoes key
-        $result = fread($this->objSocket,10000);
+        $result = fread($this->objSocket, 10000);
         preg_match('#Sec-WebSocket-Accept:\s(.*)$#mU', $result, $matches);
         $keyAccept = trim($matches[1]);
         $expectedResonse = base64_encode(pack('H*', sha1($strKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
