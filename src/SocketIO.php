@@ -162,7 +162,6 @@ class SocketIO
         fflush($this->objSocket);
         // 101 switching protocols, see if echoes key
         $result = fread($this->objSocket, 10000);
-        \Illuminate\Support\Facades\Log::debug($result);
         preg_match('#Sec-WebSocket-Accept:\s(.*)$#mU', $result, $matches);
         $keyAccept = trim($matches[1]);
         $expectedResonse = base64_encode(pack('H*', sha1($strKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
