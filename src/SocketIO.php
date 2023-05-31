@@ -29,7 +29,7 @@ class SocketIO
     /**
      * @var mixed
      */
-    private $context_options;
+    private $socket_context;
 
     /**
      * @var string
@@ -56,9 +56,6 @@ class SocketIO
      */
     private $path;
 
-    private $errors = [];
-
-
     /**
      * @var int
      */
@@ -79,25 +76,17 @@ class SocketIO
      * @param string|int null $port
      * @param string $path
      */
-    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4", $context_options = null)
+    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4", $socket_context = null)
     {
         $this->host = $host;
         $this->port = (int)$port;
         $this->path = $path;
-        $this->context_options = $context_options;
+        $this->socket_context = $socket_context;
 
         $protocol = $this->port == 443
             ? self::TLS_PROTOCOL
             : self::NO_SECURE_PROTOCOL;
         $this->protocol = $protocol;
-    }
-
-    /**
-     * @return array
-     */
-    public function getErrors()
-    {
-        return $this->errors;
     }
 
     /**
@@ -123,19 +112,10 @@ class SocketIO
         $this->queryParams = $queryParams;
     }
 
-    /**
-     * @param array $queryParams
-     */
-    public function setNamespace($namespace)
-    {
-        $this->namespace = $namespace;
-    }
-
-
     public function connect()
     {
         $hostname = "{$this->protocol}{$this->host}:{$this->port}";
-        $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $this->context_options);
+        $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $this->socket_context);
 
         if (! $this->objSocket) {
             throw new Exception("Error: SocketIO Client disconnect!");
