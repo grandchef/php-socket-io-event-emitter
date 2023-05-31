@@ -17,15 +17,19 @@ class SocketIO
     private $objSocket;
 
     /**
-     * @var string null
+     * @var string
      */
     private $port;
 
     /**
-     * @var string|int null
+     * @var string|int
      */
     private $host;
 
+    /**
+     * @var bool
+     */
+    private $ignore_ssl;
 
     /**
      * @var string
@@ -33,7 +37,7 @@ class SocketIO
     private $protocol = SocketIO::NO_SECURE_PROTOCOL;
 
     /**
-     * @var string null
+     * @var ?string
      */
     private $namespace;
 
@@ -43,7 +47,7 @@ class SocketIO
     private $event;
 
     /**
-     * @var array| string
+     * @var array|string
      */
     private $data = [];
 
@@ -75,11 +79,12 @@ class SocketIO
      * @param string|int null $port
      * @param string $path
      */
-    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4")
+    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4", $ignore_ssl = true)
     {
         $this->host = $host;
         $this->port = (int)$port;
         $this->path = $path;
+        $this->ignore_ssl = $ignore_ssl;
 
         $protocol = $this->port == 443
             ? self::TLS_PROTOCOL
@@ -129,22 +134,20 @@ class SocketIO
 
     public function connect()
     {
-        set_error_handler(function($errno, $errstr, $errfile, $errline) {
-            $error = [
-                'message' => $errstr,
-                'file' => $errfile,
-                'line' => $errline
-            ];
-            if(!in_array($error, $this->errors))
-            {
-                array_push($this->errors, $error);
-            }   
-            throw new Exception("SocketIO Client set_error_handler: " . json_encode($error));
-        });
+        $hostname = "{$this->protocol}{$this->host}:{$this->port}";
+        if ($this->ignore_ssl) {
+            $context = stream_context_create([
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false
+                ]
+            ]);
+            $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $context);
+        } else {
+            $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT);
+        }
 
-        $this->objSocket = fsockopen("{$this->protocol}{$this->host}", intval($this->port), $errno, $errstr, 10);
         if (! $this->objSocket) {
-            restore_error_handler();
             throw new Exception("Error: SocketIO Client disconnect!");
         }
 
@@ -201,7 +204,6 @@ class SocketIO
 
     public function close()
     {
-        restore_error_handler();
         fclose($this->objSocket);
     }
 
