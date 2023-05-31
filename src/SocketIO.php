@@ -17,15 +17,19 @@ class SocketIO
     private $objSocket;
 
     /**
-     * @var string null
+     * @var string
      */
     private $port;
 
     /**
-     * @var string|int null
+     * @var string|int
      */
     private $host;
 
+    /**
+     * @var mixed
+     */
+    private $socket_context;
 
     /**
      * @var string
@@ -33,7 +37,7 @@ class SocketIO
     private $protocol = SocketIO::NO_SECURE_PROTOCOL;
 
     /**
-     * @var string null
+     * @var ?string
      */
     private $namespace;
 
@@ -43,7 +47,7 @@ class SocketIO
     private $event;
 
     /**
-     * @var array| string
+     * @var array|string
      */
     private $data = [];
 
@@ -51,9 +55,6 @@ class SocketIO
      * @var string
      */
     private $path;
-
-    private $errors = [];
-
 
     /**
      * @var int
@@ -74,25 +75,19 @@ class SocketIO
      * @param string null $host
      * @param string|int null $port
      * @param string $path
+     * @param ?resource $socket_context
      */
-    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4")
+    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4", $socket_context = null)
     {
         $this->host = $host;
         $this->port = (int)$port;
         $this->path = $path;
+        $this->socket_context = $socket_context;
 
         $protocol = $this->port == 443
             ? self::TLS_PROTOCOL
             : self::NO_SECURE_PROTOCOL;
         $this->protocol = $protocol;
-    }
-
-    /**
-     * @return array
-     */
-    public function getErrors()
-    {
-        return $this->errors;
     }
 
     /**
@@ -118,34 +113,20 @@ class SocketIO
         $this->queryParams = $queryParams;
     }
 
-    /**
-     * @param array $queryParams
-     */
-    public function setNamespace($namespace)
+    public function setNamespace()
     {
-        $this->namespace = $namespace;
+        fwrite($this->objSocket, $this->hybi10Encode("40/{$this->namespace}"));
+        fflush($this->objSocket);
+        \usleep(100000);
     }
-
 
     public function connect()
     {
-        set_error_handler(function($errno, $errstr, $errfile, $errline) {
-            $error = [
-                'message' => $errstr,
-                'file' => $errfile,
-                'line' => $errline
-            ];
-            if(!in_array($error, $this->errors))
-            {
-                array_push($this->errors, $error);
-            }   
-            throw new Exception("SocketIO Client set_error_handler: " . json_encode($error));
-        });
+        $hostname = "{$this->protocol}{$this->host}:{$this->port}";
+        $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $this->socket_context);
 
-        $this->objSocket = fsockopen("{$this->protocol}{$this->host}", intval($this->port), $errno, $errstr, 10);
         if (! $this->objSocket) {
-            restore_error_handler();
-            throw new Exception("Error: SocketIO Client disconnect!");
+            throw new Exception("Error: {$errstr}", $errno);
         }
 
         $strKey = $this->generateKey();
@@ -170,9 +151,7 @@ class SocketIO
         if ($handshaked)
         {
             // connect in namespace
-            fwrite($this->objSocket, $this->hybi10Encode("40/{$this->namespace}"));
-            fflush($this->objSocket);
-            \usleep(100000);
+            $this->setNamespace();
 
             return true;
         }
@@ -201,7 +180,6 @@ class SocketIO
 
     public function close()
     {
-        restore_error_handler();
         fclose($this->objSocket);
     }
 
