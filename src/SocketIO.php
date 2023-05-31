@@ -118,7 +118,7 @@ class SocketIO
         $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $this->socket_context);
 
         if (! $this->objSocket) {
-            throw new Exception("Error: SocketIO Client disconnect!");
+            throw new Exception("Error: {$errstr}", $errno);
         }
 
         $strKey = $this->generateKey();
