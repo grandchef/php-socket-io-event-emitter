@@ -27,9 +27,9 @@ class SocketIO
     private $host;
 
     /**
-     * @var bool
+     * @var mixed
      */
-    private $ignore_ssl;
+    private $context_options;
 
     /**
      * @var string
@@ -79,12 +79,12 @@ class SocketIO
      * @param string|int null $port
      * @param string $path
      */
-    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4", $ignore_ssl = true)
+    public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4", $context_options = null)
     {
         $this->host = $host;
         $this->port = (int)$port;
         $this->path = $path;
-        $this->ignore_ssl = $ignore_ssl;
+        $this->context_options = $context_options;
 
         $protocol = $this->port == 443
             ? self::TLS_PROTOCOL
@@ -135,17 +135,7 @@ class SocketIO
     public function connect()
     {
         $hostname = "{$this->protocol}{$this->host}:{$this->port}";
-        if ($this->ignore_ssl) {
-            $context = stream_context_create([
-                'ssl' => [
-                    'verify_peer' => false,
-                    'verify_peer_name' => false
-                ]
-            ]);
-            $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $context);
-        } else {
-            $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT);
-        }
+        $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $this->context_options);
 
         if (! $this->objSocket) {
             throw new Exception("Error: SocketIO Client disconnect!");
