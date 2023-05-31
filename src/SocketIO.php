@@ -75,6 +75,7 @@ class SocketIO
      * @param string null $host
      * @param string|int null $port
      * @param string $path
+     * @param ?resource $socket_context
      */
     public function __construct($host = null, $port = null, $path = "/socket.io/?EIO=4", $socket_context = null)
     {
@@ -112,6 +113,13 @@ class SocketIO
         $this->queryParams = $queryParams;
     }
 
+    public function setNamespace()
+    {
+        fwrite($this->objSocket, $this->hybi10Encode("40/{$this->namespace}"));
+        fflush($this->objSocket);
+        \usleep(100000);
+    }
+
     public function connect()
     {
         $hostname = "{$this->protocol}{$this->host}:{$this->port}";
@@ -143,9 +151,7 @@ class SocketIO
         if ($handshaked)
         {
             // connect in namespace
-            fwrite($this->objSocket, $this->hybi10Encode("40/{$this->namespace}"));
-            fflush($this->objSocket);
-            \usleep(100000);
+            $this->setNamespace();
 
             return true;
         }
