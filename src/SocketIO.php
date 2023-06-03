@@ -6,6 +6,7 @@ declare(strict_types = 1);
 namespace GrandChef\SocketIO;
 
 use Exception;
+use Throwable;
 
 class SocketIO
 {
@@ -124,11 +125,11 @@ class SocketIO
     {
         $hostname = "{$this->protocol}{$this->host}:{$this->port}";
         $this->objSocket = stream_socket_client($hostname, $errno, $errstr, 20, STREAM_CLIENT_CONNECT, $this->socket_context);
-
+    
         if (! $this->objSocket) {
             throw new Exception("Error: {$errstr}", $errno);
         }
-
+    
         $strKey = $this->generateKey();
         $strSend = "GET {$this->path}&{$this->getQueryParams()}&transport=websocket HTTP/1.1\r\n";
         $strSend.= "Host: {$this->host}:{$this->port}\r\n";
@@ -138,22 +139,27 @@ class SocketIO
         $strSend.= "Sec-WebSocket-Key: $strKey\r\n";
         $strSend.= "Sec-WebSocket-Version: 13\r\n";
         $strSend.= "Origin: *\r\n\r\n";
-
+    
         fwrite($this->objSocket, $strSend);
         fflush($this->objSocket);
         // 101 switching protocols, see if echoes key
         $result = fread($this->objSocket, 10000);
         preg_match('#Sec-WebSocket-Accept:\s(.*)$#mU', $result, $matches);
-        $keyAccept = trim($matches[1]);
-        $expectedResonse = base64_encode(pack('H*', sha1($strKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
-        $handshaked = ($keyAccept === $expectedResonse) ? true : false;
-
-        if ($handshaked)
-        {
-            // connect in namespace
-            $this->setNamespace();
-
-            return true;
+        try {
+            $keyAccept = trim($matches[1]);
+            $expectedResonse = base64_encode(pack('H*', sha1($strKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
+            $handshaked = ($keyAccept === $expectedResonse) ? true : false;
+        
+            if ($handshaked)
+            {
+                // connect in namespace
+                $this->setNamespace();
+        
+                return true;
+            }
+        } catch (Throwable $th) {
+            $message = sprintf("Erros: %s \n Response: %s", $th->getMessage(), $result);
+            throw new Exception($message, $th->getCode(), $th->getPrevious());
         }
         fclose($this->objSocket);
         throw new Exception("SocketIO Client not handshaked!");
